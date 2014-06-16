@@ -72,9 +72,9 @@ class DatatableMixin(object):
             sortcol = order_columns[i_sort_col]
             if isinstance(sortcol, list):
                 for sc in sortcol:
-                    order.append('%s%s' % (sdir, sc))
+                    order.append('%s%s' % (sdir, sc.replace('.', '__')))
             else:
-                order.append('%s%s' % (sdir, sortcol))
+                order.append('%s%s' % (sdir, sortcol.replace('.', '__')))
         if order:
             return qs.order_by(*order)
         return qs
