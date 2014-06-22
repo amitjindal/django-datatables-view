@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import re
+from django.db.models import Q
 
 from .mixins import JSONResponseView
 
@@ -11,9 +11,11 @@ class DatatableMixin(object):
     columns = []
     order_columns = []
     max_display_length = 100  # max limit of records returned, do not allow to kill our server by huge sets of data
+    pre_camel_case_notation = False  # datatables 1.10 changed query string parameter names
 
-    def initialize(*args, **kwargs):
-        pass
+    def initialize(self, *args, **kwargs):
+        if 'iSortingCols' in self.request.REQUEST:
+            self.pre_camel_case_notation = True
 
     def get_order_columns(self):
         """ Return list of columns used for ordering
@@ -52,34 +54,35 @@ class DatatableMixin(object):
         """ Get parameters from the request and prepare order by clause
         """
         request = self.request
-        pre_camel_case_notation = True
-
-        if not request.POST.get('iSortingCols'):
-            pre_camel_case_notation = False
 
         # Number of columns that are used in sorting
-        try:
-            if pre_camel_case_notation:
+        sorting_cols = 0
+        if self.pre_camel_case_notation:
+            try:
                 sorting_cols = int(request.REQUEST.get('iSortingCols', 0))
-            else:
-                sorting_cols = len([(key, value) for key, value in self.request.POST.iteritems() if re.search(r'order.\d+..column.', key)])
-        except ValueError:
-            sorting_cols = 0
+            except ValueError:
+                sorting_cols = 0
+        else:
+            sort_key = 'order[{0}][column]'.format(sorting_cols)
+            while sort_key in self.request.REQUEST:
+                sorting_cols += 1
+                sort_key = 'order[{0}].column'.format(sorting_cols)
 
         order = []
         order_columns = self.get_order_columns()
 
         for i in range(sorting_cols):
             # sorting column
+            sort_dir = 'asc'
             try:
-                if pre_camel_case_notation:
-                    sort_col = int(request.REQUEST.get('iSortCol_%s' % i))
+                if self.pre_camel_case_notation:
+                    sort_col = int(request.REQUEST.get('iSortCol_{0}'.format(i)))
                     # sorting order
-                    sort_dir = request.REQUEST.get('sSortDir_%s' % i)
+                    sort_dir = request.REQUEST.get('sSortDir_{0}'.format(i))
                 else:
-                    sort_col = int(request.REQUEST.get('order[%s][column]' % i))
+                    sort_col = int(request.REQUEST.get('order[{0}][column]'.format(i)))
                     # sorting order
-                    sort_dir = request.REQUEST.get('order[%s][dir]' % i)
+                    sort_dir = request.REQUEST.get('order[{0}][dir]'.format(i))
             except ValueError:
                 sort_col = 0
 
@@ -88,9 +91,10 @@ class DatatableMixin(object):
 
             if isinstance(sortcol, list):
                 for sc in sortcol:
-                    order.append('%s%s' % (sdir, sc.replace('.', '__')))
+                    order.append('{0}{1}'.format(sdir, sc.replace('.', '__')))
             else:
-                order.append('%s%s' % (sdir, sortcol.replace('.', '__')))
+                order.append('{0}{1}'.format(sdir, sortcol.replace('.', '__')))
+
         if order:
             return qs.order_by(*order)
         return qs
@@ -98,13 +102,7 @@ class DatatableMixin(object):
     def paging(self, qs):
         """ Paging
         """
-        request = self.request
-        pre_camel_case_notation = True
-
-        if not request.POST.get('iSortingCols'):
-            pre_camel_case_notation = False
-
-        if pre_camel_case_notation:
+        if self.pre_camel_case_notation:
             limit = min(int(self.request.REQUEST.get('iDisplayLength', 10)), self.max_display_length)
             start = int(self.request.REQUEST.get('iDisplayStart', 0))
         else:
@@ -124,7 +122,43 @@ class DatatableMixin(object):
             raise NotImplementedError("Need to provide a model or implement get_initial_queryset!")
         return self.model.objects.all()
 
+    def extract_datatables_column_data(self):
+        """ Helper method to extract columns data from request as passed by Datatables 1.10+
+        """
+        request_dict = self.request.REQUEST
+        col_data = []
+        if not self.pre_camel_case_notation:
+            counter = 0
+            data_name_key = 'columns[{0}][name]'.format(counter)
+            while data_name_key in request_dict:
+                col_data.append({'name': request_dict.get(data_name_key),
+                                 'data': request_dict.get('columns[{0}][data]'.format(counter)),
+                                 'searchable': request_dict.get('columns[{0}][searchable]'.format(counter)),
+                                 'orderable': request_dict.get('columns[{0}][orderable]'.format(counter)),
+                                 'search.value': request_dict.get('columns[{0}][search][value]'.format(counter)),
+                                 'search.regex': request_dict.get('columns[{0}][search][regex]'.format(counter)),
+                                 })
+                counter += 1
+                data_name_key = 'columns[{0}][name]'.format(counter)
+        return col_data
+
     def filter_queryset(self, qs):
+        """ If search['value'] is provided then filter all searchable columns using istartswith
+        """
+        if not self.pre_camel_case_notation:
+            # get global search value
+            search = self.request.GET.get('search[value]', None)
+            col_data = self.extract_datatables_column_data()
+            q = Q()
+            for col_no, col in enumerate(col_data):
+                # apply global search to all searchable columns
+                if search and col['searchable']:
+                    q |= Q(**{'{0}__istartswith'.format(self.columns[col_no]): search})
+
+                # column specific filter
+                if col['search.value']:
+                    qs = qs.filter(**{'{0}__istartswith'.format(self.columns[col_no]): col['search.value']})
+            qs = qs.filter(q)
         return qs
 
     def prepare_results(self, qs):
@@ -135,11 +169,7 @@ class DatatableMixin(object):
 
     def get_context_data(self, *args, **kwargs):
         request = self.request
-        pre_camel_case_notation = True
         self.initialize(*args, **kwargs)
-
-        if not request.POST.get('iSortingCols'):
-            pre_camel_case_notation = False
 
         qs = self.get_initial_queryset()
 
@@ -155,7 +185,7 @@ class DatatableMixin(object):
         qs = self.paging(qs)
 
         # prepare output data
-        if pre_camel_case_notation:
+        if self.pre_camel_case_notation:
             aaData = self.prepare_results(qs)
 
             ret = {'sEcho': int(request.REQUEST.get('sEcho', 0)),
@@ -164,12 +194,12 @@ class DatatableMixin(object):
                    'aaData': aaData
             }
         else:
-            aaData = self.prepare_results(qs)
+            data = self.prepare_results(qs)
 
             ret = {'draw': int(request.REQUEST.get('draw', 0)),
-                   'iTotalRecords': total_records,
-                   'iTotalDisplayRecords': total_display_records,
-                   'data': aaData
+                   'recordsTotal': total_records,
+                   'recordsFiltered': total_display_records,
+                   'data': data
             }
 
         return ret
