@@ -1,7 +1,7 @@
 About
 =====
 
-django-datatables-view 2.0.0 is a base view for handling server side processing for the awesome datatables 1.10.0(http://datatables.net).
+django-datatables-view is a base view for handling server side processing for the awesome datatables 1.10.0(http://datatables.net).
 
 django-datatables-view simplifies handling of sorting, filtering and creating JSON output, as defined at: http://datatables.net/examples/server_side/
 

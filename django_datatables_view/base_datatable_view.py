@@ -52,11 +52,17 @@ class DatatableMixin(object):
         """ Get parameters from the request and prepare order by clause
         """
         request = self.request
+        pre_camel_case_notation = True
+
+        if not request.POST.get('iSortingCols'):
+            pre_camel_case_notation = False
+
         # Number of columns that are used in sorting
         try:
-            sorting_cols = len(
-                [(key, value) for key, value in self.request.POST.iteritems() if re.search(r'order.\d+..column.', key)]
-            )
+            if pre_camel_case_notation:
+                sorting_cols = int(request.REQUEST.get('iSortingCols', 0))
+            else:
+                sorting_cols = len([(key, value) for key, value in self.request.POST.iteritems() if re.search(r'order.\d+..column.', key)])
         except ValueError:
             sorting_cols = 0
 
@@ -66,12 +72,17 @@ class DatatableMixin(object):
         for i in range(sorting_cols):
             # sorting column
             try:
-                sort_col = int(request.REQUEST.get('order[%s][column]' % i))
+                if pre_camel_case_notation:
+                    sort_col = int(request.REQUEST.get('iSortCol_%s' % i))
+                    # sorting order
+                    sort_dir = request.REQUEST.get('sSortDir_%s' % i)
+                else:
+                    sort_col = int(request.REQUEST.get('order[%s][column]' % i))
+                    # sorting order
+                    sort_dir = request.REQUEST.get('order[%s][dir]' % i)
             except ValueError:
                 sort_col = 0
 
-            # sorting order
-            sort_dir = request.REQUEST.get('order[%s][dir]' % i)
             sdir = '-' if sort_dir == 'desc' else ''
             sortcol = order_columns[sort_col]
 
@@ -87,13 +98,23 @@ class DatatableMixin(object):
     def paging(self, qs):
         """ Paging
         """
-        limit = min(int(self.request.REQUEST.get('length', 10)), self.max_display_length)
+        request = self.request
+        pre_camel_case_notation = True
+
+        if not request.POST.get('iSortingCols'):
+            pre_camel_case_notation = False
+
+        if pre_camel_case_notation:
+            limit = min(int(self.request.REQUEST.get('iDisplayLength', 10)), self.max_display_length)
+            start = int(self.request.REQUEST.get('iDisplayStart', 0))
+        else:
+            limit = min(int(self.request.REQUEST.get('length', 10)), self.max_display_length)
+            start = int(self.request.REQUEST.get('start', 0))
         
         # if pagination is disabled ("paging": false)
         if limit == -1:
             return qs
-        
-        start = int(self.request.REQUEST.get('start', 0))
+
         offset = start + limit
         
         return qs[start:offset]
@@ -114,7 +135,11 @@ class DatatableMixin(object):
 
     def get_context_data(self, *args, **kwargs):
         request = self.request
+        pre_camel_case_notation = True
         self.initialize(*args, **kwargs)
+
+        if not request.POST.get('iSortingCols'):
+            pre_camel_case_notation = False
 
         qs = self.get_initial_queryset()
 
@@ -130,13 +155,22 @@ class DatatableMixin(object):
         qs = self.paging(qs)
 
         # prepare output data
-        aaData = self.prepare_results(qs)
+        if pre_camel_case_notation:
+            aaData = self.prepare_results(qs)
 
-        ret = {'draw': int(request.REQUEST.get('draw', 0)),
-               'iTotalRecords': total_records,
-               'iTotalDisplayRecords': total_display_records,
-               'data': aaData
-               }
+            ret = {'sEcho': int(request.REQUEST.get('sEcho', 0)),
+                   'iTotalRecords': total_records,
+                   'iTotalDisplayRecords': total_display_records,
+                   'aaData': aaData
+            }
+        else:
+            aaData = self.prepare_results(qs)
+
+            ret = {'draw': int(request.REQUEST.get('draw', 0)),
+                   'iTotalRecords': total_records,
+                   'iTotalDisplayRecords': total_display_records,
+                   'data': aaData
+            }
 
         return ret
 
