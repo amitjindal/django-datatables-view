@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import re
+
 from .mixins import JSONResponseView
 
 
@@ -52,24 +54,27 @@ class DatatableMixin(object):
         request = self.request
         # Number of columns that are used in sorting
         try:
-            i_sorting_cols = int(request.REQUEST.get('iSortingCols', 0))
+            sorting_cols = len(
+                [(key, value) for key, value in self.request.POST.iteritems() if re.search(r'order.\d+..column.', key)]
+            )
         except ValueError:
-            i_sorting_cols = 0
+            sorting_cols = 0
 
         order = []
         order_columns = self.get_order_columns()
-        for i in range(i_sorting_cols):
+
+        for i in range(sorting_cols):
             # sorting column
             try:
-                i_sort_col = int(request.REQUEST.get('iSortCol_%s' % i))
+                sort_col = int(request.REQUEST.get('order[%s][column]' % i))
             except ValueError:
-                i_sort_col = 0
+                sort_col = 0
+
             # sorting order
-            s_sort_dir = request.REQUEST.get('sSortDir_%s' % i)
+            sort_dir = request.REQUEST.get('order[%s][dir]' % i)
+            sdir = '-' if sort_dir == 'desc' else ''
+            sortcol = order_columns[sort_col]
 
-            sdir = '-' if s_sort_dir == 'desc' else ''
-
-            sortcol = order_columns[i_sort_col]
             if isinstance(sortcol, list):
                 for sc in sortcol:
                     order.append('%s%s' % (sdir, sc.replace('.', '__')))
@@ -82,12 +87,15 @@ class DatatableMixin(object):
     def paging(self, qs):
         """ Paging
         """
-        limit = min(int(self.request.REQUEST.get('iDisplayLength', 10)), self.max_display_length)
-        # if pagination is disabled ("bPaginate": false)
+        limit = min(int(self.request.REQUEST.get('length', 10)), self.max_display_length)
+        
+        # if pagination is disabled ("paging": false)
         if limit == -1:
             return qs
-        start = int(self.request.REQUEST.get('iDisplayStart', 0))
+        
+        start = int(self.request.REQUEST.get('start', 0))
         offset = start + limit
+        
         return qs[start:offset]
 
     def get_initial_queryset(self):
@@ -124,10 +132,10 @@ class DatatableMixin(object):
         # prepare output data
         aaData = self.prepare_results(qs)
 
-        ret = {'sEcho': int(request.REQUEST.get('sEcho', 0)),
+        ret = {'draw': int(request.REQUEST.get('draw', 0)),
                'iTotalRecords': total_records,
                'iTotalDisplayRecords': total_display_records,
-               'aaData': aaData
+               'data': aaData
                }
 
         return ret

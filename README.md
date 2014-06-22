@@ -1,9 +1,9 @@
 About
 =====
 
-django-datatables-view is a base view for handling server side processing for the awesome datatables (http://datatables.net).
+django-datatables-view 2.0.0 is a base view for handling server side processing for the awesome datatables 1.10.0(http://datatables.net).
 
-django-datatables-view simplifies handling of sorting, filtering and creating JSON output, as defined at: http://datatables.net/usage/server-side
+django-datatables-view simplifies handling of sorting, filtering and creating JSON output, as defined at: http://datatables.net/examples/server_side/
 
 Example
 =======
@@ -67,9 +67,9 @@ _django_datatables_view_ uses **GenericViews**, so your view should just inherit
                 # use request parameters to filter queryset
 
                 # simple example:
-                sSearch = self.request.POST.get('sSearch', None)
-                if sSearch:
-                    qs = qs.filter(name__istartswith=sSearch)
+                search = self.request.POST.get('search[value]', None)
+                if search:
+                    qs = qs.filter(name__istartswith=search)
 
                 # more advanced example
                 filter_customer = self.request.POST.get('customer', None)
@@ -98,9 +98,9 @@ Example JS:
     $(document).ready(function() {
         var oTable = $('.datatable').dataTable({
             // ...
-            "bProcessing": true,
-            "bServerSide": true,
-            "sAjaxSource": "{% url order_list_json %}"
+            "processing": true,
+            "serverSide": true,
+            "ajax": "{% url order_list_json %}"
         });
         // ...
     });
@@ -124,9 +124,9 @@ Example JS:
             # use request parameters to filter queryset
 
             # simple example:
-            sSearch = self.request.POST.get('sSearch', None)
-            if sSearch:
-                qs = qs.filter(name__istartswith=sSearch)
+            search = self.request.POST.get('search[value]', None)
+            if search:
+                qs = qs.filter(name__istartswith=search)
 
             # more advanced example
             filter_customer = self.request.POST.get('customer', None)
