@@ -1,7 +1,7 @@
 About
 =====
 
-django-datatables-view is a base view for handling server side processing for the awesome datatables 1.10.0(http://datatables.net).
+django-datatables-view is a base view for handling server side processing for the awesome datatables 1.9.x, 1.10.x (http://datatables.net).
 
 django-datatables-view simplifies handling of sorting, filtering and creating JSON output, as defined at: http://datatables.net/examples/server_side/
 
@@ -20,18 +20,20 @@ Usage
 ### 2. Edit views.py ###
 
 _django_datatables_view_ uses **GenericViews**, so your view should just inherit from base class: **BaseDatatableView**, and override few things
-(there is also a DatatableMixin - pure datatables handler that can be used with the mixins of your choice)
+(there is also a DatatableMixin - pure datatables handler that can be used with the mixins of your choice, eg. django-braces)
   These are:
 
   * **model** - the model that should be used to populate the datatable
   * **columns** - the columns that are going to be displayed
-  * **order_columns** - list of column names used for sorting (eg. if user sorts by second column then second column name from this list will be used in order by).
+  * **order_columns** - list of column names used for sorting (eg. if user sorts by second column then second column name from this list will be used with order by clause).
   * **filter_queryset** - if you want to filter your datatable then override this method
 
   For more advanced customisation you might want to override:
 
   * **get_initial_queryset** - method that should return queryset used to populate datatable
   * **prepare_results** - this method should return list of lists (rows with columns) as needed by datatables
+
+  The code is rather simple so do not hesitate to have a look at it. Method that is executed first (and that calls other methods) is **get_context_data**
 
   See example below:
 
@@ -50,7 +52,7 @@ _django_datatables_view_ uses **GenericViews**, so your view should just inherit
             # order is important and should be same as order of columns
             # displayed by datatables. For non sortable columns use empty
             # value like ''
-            order_columns = ['number', 'user', 'state']
+            order_columns = ['number', 'user', 'state', '', '']
 
             # set max limit of records returned, this is used to protect our site if someone tries to attack our site
             # and make it return huge amount of data
@@ -59,19 +61,19 @@ _django_datatables_view_ uses **GenericViews**, so your view should just inherit
             def render_column(self, row, column):
                 # We want to render user as a custom column
                 if column == 'user':
-                    return '%s %s' % (row.customer_firstname, row.customer_lastname)
+                    return '{0} {1}'.format(row.customer_firstname, row.customer_lastname)
                 else:
                     return super(OrderListJson, self).render_column(row, column)
 
             def filter_queryset(self, qs):
-                # use request parameters to filter queryset
+                # use parameters passed in POST request to filter queryset
 
                 # simple example:
                 search = self.request.POST.get('search[value]', None)
                 if search:
                     qs = qs.filter(name__istartswith=search)
 
-                # more advanced example
+                # more advanced example using extra parameters
                 filter_customer = self.request.POST.get('customer', None)
 
                 if filter_customer:
@@ -100,7 +102,7 @@ Example JS:
             // ...
             "processing": true,
             "serverSide": true,
-            "ajax": "{% url order_list_json %}"
+            "ajax": "{% url 'order_list_json' %}"
         });
         // ...
     });
