@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from django.db.models import Q
+from django.utils.translation import ugettext as _
 
 from .mixins import JSONResponseView
 
@@ -131,10 +132,13 @@ class DatatableMixin(object):
             counter = 0
             data_name_key = 'columns[{0}][name]'.format(counter)
             while data_name_key in request_dict:
+                searchable = True if request_dict.get('columns[{0}][searchable]'.format(counter)) == 'true' else False
+                orderable = True if request_dict.get('columns[{0}][orderable]'.format(counter)) == 'true' else False
+
                 col_data.append({'name': request_dict.get(data_name_key),
                                  'data': request_dict.get('columns[{0}][data]'.format(counter)),
-                                 'searchable': request_dict.get('columns[{0}][searchable]'.format(counter)),
-                                 'orderable': request_dict.get('columns[{0}][orderable]'.format(counter)),
+                                 'searchable': searchable,
+                                 'orderable': orderable,
                                  'search.value': request_dict.get('columns[{0}][search][value]'.format(counter)),
                                  'search.regex': request_dict.get('columns[{0}][search][regex]'.format(counter)),
                                  })
@@ -169,39 +173,59 @@ class DatatableMixin(object):
 
     def get_context_data(self, *args, **kwargs):
         request = self.request
-        self.initialize(*args, **kwargs)
+        try:
+            self.initialize(*args, **kwargs)
 
-        qs = self.get_initial_queryset()
+            qs = self.get_initial_queryset()
 
-        # number of records before filtering
-        total_records = qs.count()
+            # number of records before filtering
+            total_records = qs.count()
 
-        qs = self.filter_queryset(qs)
+            qs = self.filter_queryset(qs)
 
-        # number of records after filtering
-        total_display_records = qs.count()
+            # number of records after filtering
+            total_display_records = qs.count()
 
-        qs = self.ordering(qs)
-        qs = self.paging(qs)
+            qs = self.ordering(qs)
+            qs = self.paging(qs)
 
-        # prepare output data
-        if self.pre_camel_case_notation:
-            aaData = self.prepare_results(qs)
+            # prepare output data
+            if self.pre_camel_case_notation:
+                aaData = self.prepare_results(qs)
 
-            ret = {'sEcho': int(request.REQUEST.get('sEcho', 0)),
-                   'iTotalRecords': total_records,
-                   'iTotalDisplayRecords': total_display_records,
-                   'aaData': aaData
-            }
-        else:
-            data = self.prepare_results(qs)
+                ret = {'sEcho': int(request.REQUEST.get('sEcho', 0)),
+                       'iTotalRecords': total_records,
+                       'iTotalDisplayRecords': total_display_records,
+                       'aaData': aaData
+                       }
+            else:
+                data = self.prepare_results(qs)
 
-            ret = {'draw': int(request.REQUEST.get('draw', 0)),
-                   'recordsTotal': total_records,
-                   'recordsFiltered': total_display_records,
-                   'data': data
-            }
-
+                ret = {'draw': int(request.REQUEST.get('draw', 0)),
+                       'recordsTotal': total_records,
+                       'recordsFiltered': total_display_records,
+                       'data': data
+                }
+        except Exception as e:
+            if hasattr(e, 'message'):
+                msg = e.message
+                msg += str(e)
+            else:
+                msg = _('Internal error') + ': ' + str(e)
+            if self.pre_camel_case_notation:
+                ret = {'result': 'error',
+                       'sError': msg,
+                       'text': msg,
+                       'aaData': [],
+                       'sEcho': int(request.REQUEST.get('sEcho', 0)),
+                       'iTotalRecords': 0,
+                       'iTotalDisplayRecords': 0,}
+            else:
+                ret = {'error': msg,
+                       'data': [],
+                       'recordsTotal': 0,
+                       'recordsFiltered': 0,
+                       'draw': int(request.REQUEST.get('draw', 0))}
         return ret
 
 
