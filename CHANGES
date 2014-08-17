@@ -1,3 +1,8 @@
+2014.08.17 - 1.10
+ - fixed handling of orderable/searchable for columns - were 'true'/'false' strings instead of bool
+ - added error handling
+ Thanks Roeland van Nieuwkerk for these
+
 2014.06.22 - 1.9
  - converted the package to the use of the new camel case notation for DataTable 1.10 (http://www.datatables.net/upgrade/1.10-convert)
    (Derrick Jackson)
