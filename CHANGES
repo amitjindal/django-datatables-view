@@ -1,3 +1,6 @@
+2014.09.01 - 1.11
+ - fixed multi-column sorting - thanks Alexander Kavanaugh
+
 2014.08.17 - 1.10
  - fixed handling of orderable/searchable for columns - were 'true'/'false' strings instead of bool
  - added error handling
