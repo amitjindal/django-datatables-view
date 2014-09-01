@@ -67,7 +67,7 @@ class DatatableMixin(object):
             sort_key = 'order[{0}][column]'.format(sorting_cols)
             while sort_key in self.request.REQUEST:
                 sorting_cols += 1
-                sort_key = 'order[{0}].column'.format(sorting_cols)
+                sort_key = 'order[{0}][column]'.format(sorting_cols)
 
         order = []
         order_columns = self.get_order_columns()
