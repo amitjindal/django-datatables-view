@@ -1,8 +1,14 @@
 # -*- coding: utf-8 -*-
+
+import logging
+
+from django.conf import settings
 from django.db.models import Q
 from django.utils.translation import ugettext as _
 
 from .mixins import JSONResponseView
+
+logger = logging.getLogger(__name__)
 
 
 class DatatableMixin(object):
@@ -109,13 +115,13 @@ class DatatableMixin(object):
         else:
             limit = min(int(self.request.REQUEST.get('length', 10)), self.max_display_length)
             start = int(self.request.REQUEST.get('start', 0))
-        
+
         # if pagination is disabled ("paging": false)
         if limit == -1:
             return qs
 
         offset = start + limit
-        
+
         return qs[start:offset]
 
     def get_initial_queryset(self):
@@ -207,21 +213,26 @@ class DatatableMixin(object):
                        'data': data
                 }
         except Exception as e:
-            if hasattr(e, 'message'):
-                msg = e.message
-                msg += str(e)
+            logger.exception(str(e))
+
+            if settings.DEBUG:
+                import sys
+                from django.views.debug import ExceptionReporter
+                reporter = ExceptionReporter(None, *sys.exc_info())
+                text = "\n" + reporter.get_traceback_text()
             else:
-                msg = _('Internal error') + ': ' + str(e)
+                text = "\nAn error occured while processing an AJAX request."
+
             if self.pre_camel_case_notation:
                 ret = {'result': 'error',
-                       'sError': msg,
-                       'text': msg,
+                       'sError': text,
+                       'text': text,
                        'aaData': [],
                        'sEcho': int(request.REQUEST.get('sEcho', 0)),
                        'iTotalRecords': 0,
                        'iTotalDisplayRecords': 0,}
             else:
-                ret = {'error': msg,
+                ret = {'error': text,
                        'data': [],
                        'recordsTotal': 0,
                        'recordsFiltered': 0,
