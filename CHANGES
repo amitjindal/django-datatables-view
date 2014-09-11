@@ -1,3 +1,6 @@
+2014.09.11 - 1.12
+ - Improved logging - thanks Alexander Kavanaugh (credits to https://github.com/yceruto/ for ExceptionReporter)
+
 2014.09.01 - 1.11
  - fixed multi-column sorting - thanks Alexander Kavanaugh
 
