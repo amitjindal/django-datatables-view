@@ -66,15 +66,15 @@ _django_datatables_view_ uses **GenericViews**, so your view should just inherit
                     return super(OrderListJson, self).render_column(row, column)
 
             def filter_queryset(self, qs):
-                # use parameters passed in POST request to filter queryset
+                # use parameters passed in GET request to filter queryset
 
                 # simple example:
-                search = self.request.POST.get('search[value]', None)
+                search = self.request.GET.get(u'search[value]', None)
                 if search:
                     qs = qs.filter(name__istartswith=search)
 
                 # more advanced example using extra parameters
-                filter_customer = self.request.POST.get('customer', None)
+                filter_customer = self.request.GET.get(u'customer', None)
 
                 if filter_customer:
                     customer_parts = filter_customer.split(' ')
@@ -126,12 +126,12 @@ Example JS:
             # use request parameters to filter queryset
 
             # simple example:
-            search = self.request.POST.get('search[value]', None)
+            search = self.request.GET.get(u'search[value]', None)
             if search:
                 qs = qs.filter(name__istartswith=search)
 
             # more advanced example
-            filter_customer = self.request.POST.get('customer', None)
+            filter_customer = self.request.GET.get(u'customer', None)
 
             if filter_customer:
                 customer_parts = filter_customer.split(' ')
