@@ -1,3 +1,6 @@
+2015.05.08 - 1.12.1
+ - Fixed deprecation warnings from django 1.9 - thanks Maxim Tsoy
+
 2014.09.11 - 1.12
  - Improved logging - thanks Alexander Kavanaugh (credits to https://github.com/yceruto/ for ExceptionReporter)
 
