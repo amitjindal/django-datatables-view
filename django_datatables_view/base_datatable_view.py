@@ -4,7 +4,6 @@ import logging
 
 from django.conf import settings
 from django.db.models import Q
-from django.utils.translation import ugettext as _
 
 from .mixins import JSONResponseView
 
@@ -20,8 +19,15 @@ class DatatableMixin(object):
     max_display_length = 100  # max limit of records returned, do not allow to kill our server by huge sets of data
     pre_camel_case_notation = False  # datatables 1.10 changed query string parameter names
 
+    @property
+    def _querydict(self):
+        if self.request.method == 'POST':
+            return self.request.POST
+        else:
+            return self.request.GET
+
     def initialize(self, *args, **kwargs):
-        if 'iSortingCols' in self.request.REQUEST:
+        if 'iSortingCols' in self._querydict:
             self.pre_camel_case_notation = True
 
     def get_order_columns(self):
@@ -60,18 +66,17 @@ class DatatableMixin(object):
     def ordering(self, qs):
         """ Get parameters from the request and prepare order by clause
         """
-        request = self.request
 
         # Number of columns that are used in sorting
         sorting_cols = 0
         if self.pre_camel_case_notation:
             try:
-                sorting_cols = int(request.REQUEST.get('iSortingCols', 0))
+                sorting_cols = int(self._querydict.get('iSortingCols', 0))
             except ValueError:
                 sorting_cols = 0
         else:
             sort_key = 'order[{0}][column]'.format(sorting_cols)
-            while sort_key in self.request.REQUEST:
+            while sort_key in self._querydict:
                 sorting_cols += 1
                 sort_key = 'order[{0}][column]'.format(sorting_cols)
 
@@ -83,13 +88,13 @@ class DatatableMixin(object):
             sort_dir = 'asc'
             try:
                 if self.pre_camel_case_notation:
-                    sort_col = int(request.REQUEST.get('iSortCol_{0}'.format(i)))
+                    sort_col = int(self._querydict.get('iSortCol_{0}'.format(i)))
                     # sorting order
-                    sort_dir = request.REQUEST.get('sSortDir_{0}'.format(i))
+                    sort_dir = self._querydict.get('sSortDir_{0}'.format(i))
                 else:
-                    sort_col = int(request.REQUEST.get('order[{0}][column]'.format(i)))
+                    sort_col = int(self._querydict.get('order[{0}][column]'.format(i)))
                     # sorting order
-                    sort_dir = request.REQUEST.get('order[{0}][dir]'.format(i))
+                    sort_dir = self._querydict.get('order[{0}][dir]'.format(i))
             except ValueError:
                 sort_col = 0
 
@@ -110,11 +115,11 @@ class DatatableMixin(object):
         """ Paging
         """
         if self.pre_camel_case_notation:
-            limit = min(int(self.request.REQUEST.get('iDisplayLength', 10)), self.max_display_length)
-            start = int(self.request.REQUEST.get('iDisplayStart', 0))
+            limit = min(int(self._querydict.get('iDisplayLength', 10)), self.max_display_length)
+            start = int(self._querydict.get('iDisplayStart', 0))
         else:
-            limit = min(int(self.request.REQUEST.get('length', 10)), self.max_display_length)
-            start = int(self.request.REQUEST.get('start', 0))
+            limit = min(int(self._querydict.get('length', 10)), self.max_display_length)
+            start = int(self._querydict.get('start', 0))
 
         # if pagination is disabled ("paging": false)
         if limit == -1:
@@ -132,7 +137,7 @@ class DatatableMixin(object):
     def extract_datatables_column_data(self):
         """ Helper method to extract columns data from request as passed by Datatables 1.10+
         """
-        request_dict = self.request.REQUEST
+        request_dict = self._querydict
         col_data = []
         if not self.pre_camel_case_notation:
             counter = 0
@@ -178,7 +183,6 @@ class DatatableMixin(object):
         return data
 
     def get_context_data(self, *args, **kwargs):
-        request = self.request
         try:
             self.initialize(*args, **kwargs)
 
@@ -199,7 +203,7 @@ class DatatableMixin(object):
             if self.pre_camel_case_notation:
                 aaData = self.prepare_results(qs)
 
-                ret = {'sEcho': int(request.REQUEST.get('sEcho', 0)),
+                ret = {'sEcho': int(self._querydict.get('sEcho', 0)),
                        'iTotalRecords': total_records,
                        'iTotalDisplayRecords': total_display_records,
                        'aaData': aaData
@@ -207,7 +211,7 @@ class DatatableMixin(object):
             else:
                 data = self.prepare_results(qs)
 
-                ret = {'draw': int(request.REQUEST.get('draw', 0)),
+                ret = {'draw': int(self._querydict.get('draw', 0)),
                        'recordsTotal': total_records,
                        'recordsFiltered': total_display_records,
                        'data': data
@@ -228,15 +232,15 @@ class DatatableMixin(object):
                        'sError': text,
                        'text': text,
                        'aaData': [],
-                       'sEcho': int(request.REQUEST.get('sEcho', 0)),
+                       'sEcho': int(self._querydict.get('sEcho', 0)),
                        'iTotalRecords': 0,
-                       'iTotalDisplayRecords': 0,}
+                       'iTotalDisplayRecords': 0, }
             else:
                 ret = {'error': text,
                        'data': [],
                        'recordsTotal': 0,
                        'recordsFiltered': 0,
-                       'draw': int(request.REQUEST.get('draw', 0))}
+                       'draw': int(self._querydict.get('draw', 0))}
         return ret
 
 
