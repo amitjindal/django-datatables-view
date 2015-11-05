@@ -171,11 +171,11 @@ class DatatableMixin(object):
             for col_no, col in enumerate(col_data):
                 # apply global search to all searchable columns
                 if search and col['searchable']:
-                    q |= Q(**{'{0}__istartswith'.format(self.columns[col_no]): search})
+                    q |= Q(**{'{0}__istartswith'.format(self.columns[col_no].replace('.', '__')): search})
 
                 # column specific filter
                 if col['search.value']:
-                    qs = qs.filter(**{'{0}__istartswith'.format(self.columns[col_no]): col['search.value']})
+                    qs = qs.filter(**{'{0}__istartswith'.format(self.columns[col_no].replace('.', '__')): col['search.value']})
             qs = qs.filter(q)
         return qs
 
