@@ -1,3 +1,7 @@
+2015.11.08 - 1.13.0
+ - handle foreign keys while filtering - thanks Bruno Lottero
+ - added none_string property - thanks Alan Moore
+
 2015.05.08 - 1.12.1
  - Fixed deprecation warnings from django 1.9 - thanks Maxim Tsoy
 
