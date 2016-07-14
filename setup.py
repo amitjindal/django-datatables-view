@@ -20,7 +20,7 @@ setup(name='django-datatables-view',
           'Programming Language :: Python',
           'Programming Language :: Python :: 2',
           'Programming Language :: Python :: 2.7',
-          'Programming Language :: Python :: 3'
+          'Programming Language :: Python :: 3',
           'Programming Language :: Python :: 3.4'
       ],
       keywords='django datatables view',
