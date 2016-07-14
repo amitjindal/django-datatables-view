@@ -1,3 +1,6 @@
+2016.07.14 - 1.13.1
+ - updated Trove classifiers in setup.py (issue #25)
+
 2015.11.08 - 1.13.0
  - handle foreign keys while filtering - thanks Bruno Lottero
  - added none_string property - thanks Alan Moore

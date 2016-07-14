@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import os
 
-version = '1.13.0'
+version = '1.13.1'
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.md')).read()
@@ -16,7 +16,12 @@ setup(name='django-datatables-view',
           'Framework :: Django',
           'License :: OSI Approved :: BSD License',
           'Operating System :: OS Independent',
+          'Development Status :: 5 - Production/Stable',
           'Programming Language :: Python',
+          'Programming Language :: Python :: 2',
+          'Programming Language :: Python :: 2.7',
+          'Programming Language :: Python :: 3'
+          'Programming Language :: Python :: 3.4'
       ],
       keywords='django datatables view',
       author='Maciej Wisniowski',
