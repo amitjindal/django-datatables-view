@@ -165,7 +165,7 @@ class DatatableMixin(object):
         """
         if not self.pre_camel_case_notation:
             # get global search value
-            search = self.request.GET.get('search[value]', None)
+            search = self._querydict.get('search[value]', None)
             col_data = self.extract_datatables_column_data()
             q = Q()
             for col_no, col in enumerate(col_data):
