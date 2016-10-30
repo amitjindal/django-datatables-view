@@ -53,8 +53,10 @@ class JSONResponseMixin(object):
             if not self.is_clean:
                 assert isinstance(func_val, dict)
                 response = dict(func_val)
-                if 'result' not in response:
+                if 'error' not in response and 'sError' not in response:
                     response['result'] = 'ok'
+                else:
+                    response['result'] = 'error'
             else:
                 response = func_val
         except KeyboardInterrupt:

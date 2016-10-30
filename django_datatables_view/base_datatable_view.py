@@ -218,7 +218,7 @@ class DatatableMixin(object):
                        'recordsTotal': total_records,
                        'recordsFiltered': total_display_records,
                        'data': data
-                }
+                       }
         except Exception as e:
             logger.exception(str(e))
 
@@ -231,8 +231,7 @@ class DatatableMixin(object):
                 text = "\nAn error occured while processing an AJAX request."
 
             if self.pre_camel_case_notation:
-                ret = {'result': 'error',
-                       'sError': text,
+                ret = {'sError': text,
                        'text': text,
                        'aaData': [],
                        'sEcho': int(self._querydict.get('sEcho', 0)),
