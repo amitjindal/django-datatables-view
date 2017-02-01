@@ -42,29 +42,28 @@ class DatatableMixin(object):
         return self.columns
 
     def render_column(self, row, column):
-        """ Renders a column on a row
+        """ Renders a column on a row. column can be given in a module notation eg. document.invoice.type
         """
-        if hasattr(row, 'get_%s_display' % column):
-            # It's a choice field
-            text = getattr(row, 'get_%s_display' % column)()
-        else:
-            try:
-                text = getattr(row, column)
-            except AttributeError:
-                obj = row
-                for part in column.split('.'):
-                    if obj is None:
-                        break
-                    obj = getattr(obj, part)
+        # try to find rightmost object
+        obj = row
+        parts = column.split('.')
+        for part in parts[:-1]:
+            if obj is None:
+                break
+            obj = getattr(obj, part)
 
-                text = obj
-        if text is None:
-            text = self.none_string
-            
-        if text and hasattr(row, 'get_absolute_url'):
-            return '<a href="%s">%s</a>' % (row.get_absolute_url(), text)
+        # try using get_OBJECT_display for choice fields
+        if hasattr(obj, 'get_%s_display' % parts[-1]):
+            value = getattr(obj, 'get_%s_display' % parts[-1])()
         else:
-            return text
+            value = getattr(obj, parts[-1], None)
+
+        if value is None:
+            value = self.none_string
+            
+        if value and hasattr(obj, 'get_absolute_url'):
+            return '<a href="%s">%s</a>' % (obj.get_absolute_url(), value)
+        return value
 
     def ordering(self, qs):
         """ Get parameters from the request and prepare order by clause

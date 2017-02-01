@@ -1,3 +1,8 @@
+2017.02.01 - 1.14.0
+ - render_column method is now able to call get_OBJECT_display on foreign models (issue #31)
+ - potentially backward incompatible change in render_column - get_absolute_url is now called on obj that is
+   computed from dotted notation
+
 2016.10.30 - 1.13.2
  - Make POST requests work (thanks Adam Taylor)
  - Change handling of 'result' error/ok state by JSONResponseMixin (Issue #26)
