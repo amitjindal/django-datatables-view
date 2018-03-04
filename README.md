@@ -40,6 +40,7 @@ _django_datatables_view_ uses **GenericViews**, so your view should just inherit
     :::python
 
         from django_datatables_view.base_datatable_view import BaseDatatableView
+        from django.utils.html import escape
 
         class OrderListJson(BaseDatatableView):
             # The model we're going to show
@@ -61,7 +62,8 @@ _django_datatables_view_ uses **GenericViews**, so your view should just inherit
             def render_column(self, row, column):
                 # We want to render user as a custom column
                 if column == 'user':
-                    return '{0} {1}'.format(row.customer_firstname, row.customer_lastname)
+                    # escape HTML for security reasons
+                    return escape('{0} {1}'.format(row.customer_firstname, row.customer_lastname))
                 else:
                     return super(OrderListJson, self).render_column(row, column)
 
@@ -111,6 +113,7 @@ Example JS:
 ## Another example of views.py customisation ##
 
     from django_datatables_view.base_datatable_view import BaseDatatableView
+    from django.utils.html import escape
 
     class OrderListJson(BaseDatatableView):
         order_columns = ['number', 'user', 'state']
@@ -148,8 +151,8 @@ Example JS:
             json_data = []
             for item in qs:
                 json_data.append([
-                    item.number,
-                    "{0} {1}".format(item.customer_firstname, item.customer_lastname),
+                    escape(item.number),  # escape HTML for security reasons
+                    escape("{0} {1}".format(item.customer_firstname, item.customer_lastname)),  # escape HTML for security reasons
                     item.get_state_display(),
                     item.created.strftime("%Y-%m-%d %H:%M:%S"),
                     item.modified.strftime("%Y-%m-%d %H:%M:%S")

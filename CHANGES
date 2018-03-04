@@ -1,3 +1,7 @@
+2018.03.04 - 1.15.0
+ - possible backward incomatible change: escape() is now called for each value returned by render_column.
+   This can be disabled by setting class attribute: escape_values to False.
+
 2017.02.01 - 1.14.0
  - render_column method is now able to call get_OBJECT_display on foreign models (issue #31)
  - potentially backward incompatible change in render_column - get_absolute_url is now called on obj that is

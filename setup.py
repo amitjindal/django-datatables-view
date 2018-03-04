@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import os
 
-version = '1.14.0'
+version = '1.15.0'
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.md')).read()
@@ -33,5 +33,5 @@ setup(name='django-datatables-view',
       dependency_links=[],
       install_requires=[
           'setuptools',
-      ],
-     )
+      ]
+      )

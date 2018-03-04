@@ -4,6 +4,7 @@ import logging
 
 from django.conf import settings
 from django.db.models import Q
+from django.utils.html import escape
 
 from .mixins import JSONResponseView
 
@@ -19,6 +20,7 @@ class DatatableMixin(object):
     max_display_length = 100  # max limit of records returned, do not allow to kill our server by huge sets of data
     pre_camel_case_notation = False  # datatables 1.10 changed query string parameter names
     none_string = ''
+    escape_values = True  # if set to true then values returned by render_column will be escaped
     
     @property
     def _querydict(self):
@@ -60,6 +62,9 @@ class DatatableMixin(object):
 
         if value is None:
             value = self.none_string
+
+        if self.escape_values:
+            value = escape(value)
             
         if value and hasattr(obj, 'get_absolute_url'):
             return '<a href="%s">%s</a>' % (obj.get_absolute_url(), value)
@@ -174,7 +179,8 @@ class DatatableMixin(object):
 
                 # column specific filter
                 if col['search.value']:
-                    qs = qs.filter(**{'{0}__istartswith'.format(self.columns[col_no].replace('.', '__')): col['search.value']})
+                    qs = qs.filter(**{
+                        '{0}__istartswith'.format(self.columns[col_no].replace('.', '__')): col['search.value']})
             qs = qs.filter(q)
         return qs
 
