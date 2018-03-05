@@ -190,6 +190,9 @@ class DatatableMixin(object):
             data.append([self.render_column(item, column) for column in self.get_columns()])
         return data
 
+    def handle_exception(self, e):
+        logger.exception(str(e))
+
     def get_context_data(self, *args, **kwargs):
         try:
             self.initialize(*args, **kwargs)
@@ -225,7 +228,7 @@ class DatatableMixin(object):
                        'data': data
                        }
         except Exception as e:
-            logger.exception(str(e))
+            self.handle_exception(e)
 
             if settings.DEBUG:
                 import sys
