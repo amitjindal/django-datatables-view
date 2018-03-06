@@ -1,15 +1,15 @@
 from setuptools import setup, find_packages
 import os
 
-version = '1.15.0'
+version = '1.15.1'
 
-here = os.path.abspath(os.path.dirname(__file__))
-README = open(os.path.join(here, 'README.md')).read()
+base_dir = os.path.dirname(__file__)
+
 
 setup(name='django-datatables-view',
       version=version,
       description='Django datatables view',
-      long_description=README,
+      long_description=open(os.path.join(base_dir, "README.rst")).read(),
       url='https://bitbucket.org/pigletto/django-datatables-view',
       classifiers=[
           'Environment :: Web Environment',

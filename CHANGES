@@ -1,3 +1,6 @@
+2018.03.05 - 1.15.1
+ - added handle_exception method in order to make exception handling easier. Thanks pmourlanne.
+
 2018.03.04 - 1.15.0
  - possible backward incomatible change: escape() is now called for each value returned by render_column.
    This can be disabled by setting class attribute: escape_values to False.
