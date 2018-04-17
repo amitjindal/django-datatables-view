@@ -7,7 +7,6 @@ try:
 except ImportError as e:
     from django.utils.encoding import force_text  # Django 1.5 / python3
 from django.utils.functional import Promise
-from django.utils.translation import ugettext as _
 from django.utils.cache import add_never_cache_headers
 from django.views.generic.base import TemplateView
 
@@ -62,18 +61,6 @@ class JSONResponseMixin(object):
         except KeyboardInterrupt:
             # Allow keyboard interrupts through for debugging.
             raise
-        except Exception as e:
-            logger.error('JSON view error: %s' % request.path, exc_info=True)
-
-            # Come what may, we're returning JSON.
-            if hasattr(e, 'message'):
-                msg = e.message
-                msg += str(e)
-            else:
-                msg = _('Internal error') + ': ' + str(e)
-            response = {'result': 'error',
-                        'sError': msg,
-                        'text': msg}
 
         dump = json.dumps(response, cls=LazyEncoder)
         return self.render_to_response(dump)

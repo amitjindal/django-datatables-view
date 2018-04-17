@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-
 import logging
 
-from django.conf import settings
 from django.db.models import Q
 from django.utils.html import escape
 
@@ -192,6 +190,7 @@ class DatatableMixin(object):
 
     def handle_exception(self, e):
         logger.exception(str(e))
+        raise e
 
     def get_context_data(self, *args, **kwargs):
         try:
@@ -227,31 +226,9 @@ class DatatableMixin(object):
                        'recordsFiltered': total_display_records,
                        'data': data
                        }
+            return ret
         except Exception as e:
-            self.handle_exception(e)
-
-            if settings.DEBUG:
-                import sys
-                from django.views.debug import ExceptionReporter
-                reporter = ExceptionReporter(None, *sys.exc_info())
-                text = "\n" + reporter.get_traceback_text()
-            else:
-                text = "\nAn error occured while processing an AJAX request."
-
-            if self.pre_camel_case_notation:
-                ret = {'sError': text,
-                       'text': text,
-                       'aaData': [],
-                       'sEcho': int(self._querydict.get('sEcho', 0)),
-                       'iTotalRecords': 0,
-                       'iTotalDisplayRecords': 0, }
-            else:
-                ret = {'error': text,
-                       'data': [],
-                       'recordsTotal': 0,
-                       'recordsFiltered': 0,
-                       'draw': int(self._querydict.get('draw', 0))}
-        return ret
+            return self.handle_exception(e)
 
 
 class BaseDatatableView(DatatableMixin, JSONResponseView):
