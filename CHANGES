@@ -1,3 +1,8 @@
+2018.04.17 - 1.16.0
+ - removed exception handling - let exceptions propagate in a normal django flow (backward incompatible change!)
+   Previously django_datatables_view has handled exceptions and returned these to datatables as JSON with status code
+   200. This caused that exceptions might have been not properly recorded eg. by Sentry.
+
 2018.03.05 - 1.15.1
  - added handle_exception method in order to make exception handling easier. Thanks pmourlanne.
 
