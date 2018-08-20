@@ -165,6 +165,7 @@ class DatatableMixin(object):
     def filter_queryset(self, qs):
         """ If search['value'] is provided then filter all searchable columns using istartswith
         """
+        columns = self.get_columns()
         if not self.pre_camel_case_notation:
             # get global search value
             search = self._querydict.get('search[value]', None)
@@ -173,12 +174,12 @@ class DatatableMixin(object):
             for col_no, col in enumerate(col_data):
                 # apply global search to all searchable columns
                 if search and col['searchable']:
-                    q |= Q(**{'{0}__istartswith'.format(self.columns[col_no].replace('.', '__')): search})
+                    q |= Q(**{'{0}__istartswith'.format(columns[col_no].replace('.', '__')): search})
 
                 # column specific filter
                 if col['search.value']:
                     qs = qs.filter(**{
-                        '{0}__istartswith'.format(self.columns[col_no].replace('.', '__')): col['search.value']})
+                        '{0}__istartswith'.format(columns[col_no].replace('.', '__')): col['search.value']})
             qs = qs.filter(q)
         return qs
 
