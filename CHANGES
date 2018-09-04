@@ -1,3 +1,8 @@
+2018.09.04 - 1.17.0
+ - If 'name' field is defined in columns definition (JS side) then it can be used to create 'columns' and
+   'order_columns' (see django-datatables-view-example for sample code).
+ - Added get_filter_method method to make it possible to easily change filter from istartswith to e.g. icontains.
+
 2018.04.17 - 1.16.0
  - removed exception handling - let exceptions propagate in a normal django flow (backward incompatible change!)
    Previously django_datatables_view has handled exceptions and returned these to datatables as JSON with status code

@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 import os
 
-version = '1.16.0'
+version = '1.17.0'
 
 base_dir = os.path.dirname(__file__)
 

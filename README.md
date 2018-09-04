@@ -23,9 +23,10 @@ _django_datatables_view_ uses **GenericViews**, so your view should just inherit
 (there is also a DatatableMixin - pure datatables handler that can be used with the mixins of your choice, eg. django-braces). These are:
 
   * **model** - the model that should be used to populate the datatable
-  * **columns** - the columns that are going to be displayed
-  * **order_columns** - list of column names used for sorting (eg. if user sorts by second column then second column name from this list will be used with order by clause).
-  * **filter_queryset** - if you want to filter your datatable then override this method
+  * **columns** - the columns that are going to be displayed. If not defined then django_datatables_view will look for 'name' in the columns definition provided in the request by DataTables, eg.: columnDefs: [{name: 'name', targets: [0]} (only works for datatables 1.10+)
+  * **order_columns** - list of column names used for sorting (eg. if user sorts by second column then second column name from this list will be used with order by clause). If not defined then django_datatables_view will look for 'name' in the columns definition provided in the request by DataTables, eg.: columnDefs: [{name: 'name', targets: [0]} (only works for datatables 1.10+)
+  * **filter_queryset** - if you want to filter your DataTable in some specific way then override this method. In case of older DataTables (pre 1.10) you need to override this method or there will be no filtering.
+  * **filter_method** - returns 'istartswith' by default, you can override it to use different filtering method, e.g. icontains: return self.FILTER_ICONTAINS
 
   For more advanced customisation you might want to override:
 
@@ -33,7 +34,7 @@ _django_datatables_view_ uses **GenericViews**, so your view should just inherit
   * **prepare_results** - this method should return list of lists (rows with columns) as needed by datatables
   * **escape_values** - you can set this attribute to False in order to not escape values returned from render_column method
 
-The code is rather simple so do not hesitate to have a look at it. Method that is executed first (and that calls other methods) is **get_context_data**
+The code is rather simple so do not hesitate to have a look at it. Method that is executed first (and that calls other methods to execute whole logic) is **get_context_data**. Definitely have a look at this method!
 
 See example below:
   
@@ -71,12 +72,12 @@ See example below:
             # use parameters passed in GET request to filter queryset
 
             # simple example:
-            search = self.request.GET.get(u'search[value]', None)
+            search = self.request.GET.get('search[value]', None)
             if search:
                 qs = qs.filter(name__istartswith=search)
 
             # more advanced example using extra parameters
-            filter_customer = self.request.GET.get(u'customer', None)
+            filter_customer = self.request.GET.get('customer', None)
 
             if filter_customer:
                 customer_parts = filter_customer.split(' ')
@@ -133,12 +134,12 @@ class OrderListJson(BaseDatatableView):
         # use request parameters to filter queryset
 
         # simple example:
-        search = self.request.GET.get(u'search[value]', None)
+        search = self.request.GET.get('search[value]', None)
         if search:
             qs = qs.filter(name__istartswith=search)
 
         # more advanced example
-        filter_customer = self.request.GET.get(u'customer', None)
+        filter_customer = self.request.GET.get('customer', None)
 
         if filter_customer:
             customer_parts = filter_customer.split(' ')
@@ -162,4 +163,40 @@ class OrderListJson(BaseDatatableView):
                 item.modified.strftime("%Y-%m-%d %H:%M:%S")
             ])
         return json_data
+```
+
+## Yet another example of views.py customisation ##
+
+This sample assumes that list of columns and order columns is defined on the client side (DataTables), eg.:
+
+```javascript
+$(document).ready(function() {
+    var dt_table = $('.datatable').dataTable({
+        order: [[ 0, "desc" ]],
+        columnDefs: [
+            {
+                name: 'name',
+                orderable: true,
+                searchable: true,
+                targets: [0]
+            },
+            {
+                name: 'description',
+                orderable: true,
+                searchable: true,
+                targets: [1]
+            }
+        ],
+        searching: true,
+        processing: true,
+        serverSide: true,
+        stateSave: true,
+        ajax: TESTMODEL_LIST_JSON_URL
+    });
+});
+```
+
+```python
+class TestModelListJson(BaseDatatableView):
+    model = TestModel
 ```

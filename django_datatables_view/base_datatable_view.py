@@ -14,12 +14,17 @@ class DatatableMixin(object):
     """
     model = None
     columns = []
+    _columns = []  # internal cache for columns definition
     order_columns = []
     max_display_length = 100  # max limit of records returned, do not allow to kill our server by huge sets of data
     pre_camel_case_notation = False  # datatables 1.10 changed query string parameter names
     none_string = ''
     escape_values = True  # if set to true then values returned by render_column will be escaped
-    
+    columns_data = []
+
+    FILTER_ISTARTSWITH = 'istartswith'
+    FILTER_ICONTAINS = 'icontains'
+
     @property
     def _querydict(self):
         if self.request.method == 'POST':
@@ -27,19 +32,82 @@ class DatatableMixin(object):
         else:
             return self.request.GET
 
+    def get_filter_method(self):
+        """ Returns preferred filter method """
+        return self.FILTER_ISTARTSWITH
+
     def initialize(self, *args, **kwargs):
+        """ Determine which version of DataTables is being used - there are differences in parameters sent by
+            DataTables < 1.10.x
+        """
         if 'iSortingCols' in self._querydict:
             self.pre_camel_case_notation = True
 
     def get_order_columns(self):
-        """ Return list of columns used for ordering
+        """ Return list of columns used for ordering.
+            By default returns self.order_columns but if these are not defined it tries to get columns
+            from the request using the columns[i][name] attribute. This requires proper client side definition of
+            columns, eg:
+                columnDefs: [
+                    {
+                        name: 'username',
+                        orderable: true,
+                        targets: [0]
+                    },
+                    {
+                        name: 'email',
+                        orderable: false,
+                        targets: [1]
+                    }
+                ]
         """
-        return self.order_columns
+        if self.order_columns or self.pre_camel_case_notation:
+            return self.order_columns
+
+        # try to build list of order_columns using request data
+        order_columns = []
+        for column_def in self.columns_data:
+            if column_def['name']:
+                if column_def['orderable']:
+                    order_columns.append(column_def['name'])
+                else:
+                    order_columns.append('')
+            else:
+                # fallback to columns
+                order_columns = self._columns
+                break
+
+        self.order_columns = order_columns
+        return order_columns
 
     def get_columns(self):
-        """ Returns the list of columns that are returned in the result set
+        """ Returns the list of columns to be returned in the result set.
+            By default returns self.columns but if these are not defined it tries to get columns
+            from the request using the columns[i][name] attribute. This requires proper client side definition of
+            columns, eg:
+
+                columnDefs: [
+                    {
+                        name: 'username',
+                        targets: [0]
+                    },
+                    {
+                        name: 'email',
+                        targets: [1]
+                    }
+                ]
         """
-        return self.columns
+        if self.columns or self.pre_camel_case_notation:
+            return self.columns
+
+        columns = []
+        for column_def in self.columns_data:
+            if column_def['name']:
+                columns.append(column_def['name'])
+            else:
+                raise Exception('self.columns is not defined and there is no \'name\' defined in columns definition!')
+
+        return columns
 
     def render_column(self, row, column):
         """ Renders a column on a row. column can be given in a module notation eg. document.invoice.type
@@ -163,30 +231,33 @@ class DatatableMixin(object):
         return col_data
 
     def filter_queryset(self, qs):
-        """ If search['value'] is provided then filter all searchable columns using istartswith
+        """ If search['value'] is provided then filter all searchable columns using filter_method (istartswith
+            by default).
+
+            Automatic filtering only works for Datatables 1.10+. For older versions override this method
         """
-        columns = self.get_columns()
+        columns = self._columns
         if not self.pre_camel_case_notation:
             # get global search value
             search = self._querydict.get('search[value]', None)
-            col_data = self.extract_datatables_column_data()
             q = Q()
-            for col_no, col in enumerate(col_data):
+            filter_method = self.get_filter_method()
+            for col_no, col in enumerate(self.columns_data):
                 # apply global search to all searchable columns
                 if search and col['searchable']:
-                    q |= Q(**{'{0}__istartswith'.format(columns[col_no].replace('.', '__')): search})
+                    q |= Q(**{'{0}__{1}'.format(columns[col_no].replace('.', '__'), filter_method): search})
 
                 # column specific filter
                 if col['search.value']:
                     qs = qs.filter(**{
-                        '{0}__istartswith'.format(columns[col_no].replace('.', '__')): col['search.value']})
+                        '{0}__{1}'.format(columns[col_no].replace('.', '__'), filter_method): col['search.value']})
             qs = qs.filter(q)
         return qs
 
     def prepare_results(self, qs):
         data = []
         for item in qs:
-            data.append([self.render_column(item, column) for column in self.get_columns()])
+            data.append([self.render_column(item, column) for column in self._columns])
         return data
 
     def handle_exception(self, e):
@@ -197,17 +268,28 @@ class DatatableMixin(object):
         try:
             self.initialize(*args, **kwargs)
 
+            # prepare columns data (for DataTables 1.10+)
+            self.columns_data = self.extract_datatables_column_data()
+
+            # prepare list of columns to be returned
+            self._columns = self.get_columns()
+
+            # prepare initial queryset
             qs = self.get_initial_queryset()
 
-            # number of records before filtering
+            # store the total number of records (before filtering)
             total_records = qs.count()
 
+            # apply filters
             qs = self.filter_queryset(qs)
 
             # number of records after filtering
             total_display_records = qs.count()
 
+            # apply ordering
             qs = self.ordering(qs)
+
+            # apply pagintion
             qs = self.paging(qs)
 
             # prepare output data
