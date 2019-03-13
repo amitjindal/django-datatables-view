@@ -47,20 +47,16 @@ class JSONResponseMixin(object):
         self.request = request
         response = None
 
-        try:
-            func_val = self.get_context_data(**kwargs)
-            if not self.is_clean:
-                assert isinstance(func_val, dict)
-                response = dict(func_val)
-                if 'error' not in response and 'sError' not in response:
-                    response['result'] = 'ok'
-                else:
-                    response['result'] = 'error'
+        func_val = self.get_context_data(**kwargs)
+        if not self.is_clean:
+            assert isinstance(func_val, dict)
+            response = dict(func_val)
+            if 'error' not in response and 'sError' not in response:
+                response['result'] = 'ok'
             else:
-                response = func_val
-        except KeyboardInterrupt:
-            # Allow keyboard interrupts through for debugging.
-            raise
+                response['result'] = 'error'
+        else:
+            response = func_val
 
         dump = json.dumps(response, cls=LazyEncoder)
         return self.render_to_response(dump)
