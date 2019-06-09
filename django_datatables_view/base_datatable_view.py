@@ -109,6 +109,15 @@ class DatatableMixin(object):
 
         return columns
 
+    @staticmethod
+    def _column_value(obj, key):
+        """ Returns the value from a queryset item
+        """
+        if isinstance(obj, dict):
+            return obj.get(key, None)
+
+        return getattr(obj, key, None)
+
     def render_column(self, row, column):
         """ Renders a column on a row. column can be given in a module notation eg. document.invoice.type
         """
@@ -124,7 +133,7 @@ class DatatableMixin(object):
         if hasattr(obj, 'get_%s_display' % parts[-1]):
             value = getattr(obj, 'get_%s_display' % parts[-1])()
         else:
-            value = getattr(obj, parts[-1], None)
+            value = self._column_value(obj, parts[-1])
 
         if value is None:
             value = self.none_string
