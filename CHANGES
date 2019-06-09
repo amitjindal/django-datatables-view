@@ -1,3 +1,6 @@
+2019.06.09 - 1.18.0
+ - Added support for dict (.values) to rendering method (thanks Andreas Hasenkopf)
+
 2018.09.04 - 1.17.0
  - If 'name' field is defined in columns definition (JS side) then it can be used to create 'columns' and
    'order_columns' (see django-datatables-view-example for sample code).
