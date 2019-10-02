@@ -23,8 +23,8 @@ _django_datatables_view_ uses **GenericViews**, so your view should just inherit
 (there is also a DatatableMixin - pure datatables handler that can be used with the mixins of your choice, eg. django-braces). These are:
 
   * **model** - the model that should be used to populate the datatable
-  * **columns** - the columns that are going to be displayed. If not defined then django_datatables_view will look for 'name' in the columns definition provided in the request by DataTables, eg.: columnDefs: [{name: 'name', targets: [0]} (only works for datatables 1.10+)
-  * **order_columns** - list of column names used for sorting (eg. if user sorts by second column then second column name from this list will be used with order by clause). If not defined then django_datatables_view will look for 'name' in the columns definition provided in the request by DataTables, eg.: columnDefs: [{name: 'name', targets: [0]} (only works for datatables 1.10+)
+  * **columns** - the columns that are going to be displayed. If not defined then django_datatables_view will look for 'data' or 'name' in the columns definition provided in the request by DataTables, eg.: columns: [{data: 'first_name'}] (only works for datatables 1.10+)
+  * **order_columns** - list of column names used for sorting (eg. if user sorts by second column then second column name from this list will be used with order by clause). If not defined then django_datatables_view will look for 'data' or 'name' in the columns definition provided in the request by DataTables, eg.: columns: [{data: 'first_name'}] (only works for datatables 1.10+)
   * **filter_queryset** - if you want to filter your DataTable in some specific way then override this method. In case of older DataTables (pre 1.10) you need to override this method or there will be no filtering.
   * **filter_method** - returns 'istartswith' by default, you can override it to use different filtering method, e.g. icontains: return self.FILTER_ICONTAINS
 
@@ -173,18 +173,16 @@ This sample assumes that list of columns and order columns is defined on the cli
 $(document).ready(function() {
     var dt_table = $('.datatable').dataTable({
         order: [[ 0, "desc" ]],
-        columnDefs: [
+        columns: [
             {
-                name: 'name',
+                data: 'name',
                 orderable: true,
-                searchable: true,
-                targets: [0]
+                searchable: true
             },
             {
-                name: 'description',
+                data: 'description',
                 orderable: true,
                 searchable: true,
-                targets: [1]
             }
         ],
         searching: true,

@@ -1,3 +1,7 @@
+2019.10.02 - 1.19.0
+ - Fixed backward compatibility with version 1.16
+ - Use columns.data field (if defined in JavaScript) to determine columns definition
+
 2019.06.09 - 1.18.0
  - Added support for dict (.values) to rendering method (thanks Andreas Hasenkopf)
 

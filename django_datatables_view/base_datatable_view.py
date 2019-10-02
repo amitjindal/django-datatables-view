@@ -21,6 +21,9 @@ class DatatableMixin(object):
     none_string = ''
     escape_values = True  # if set to true then values returned by render_column will be escaped
     columns_data = []
+    is_data_list = True  # determines the type of results. If JavaScript passes data attribute that is not an integer
+                         # then it expects dictionary with specific fields in
+                         # the response, see: https://datatables.net/reference/option/columns.data
 
     FILTER_ISTARTSWITH = 'istartswith'
     FILTER_ICONTAINS = 'icontains'
@@ -48,16 +51,16 @@ class DatatableMixin(object):
             By default returns self.order_columns but if these are not defined it tries to get columns
             from the request using the columns[i][name] attribute. This requires proper client side definition of
             columns, eg:
-                columnDefs: [
+                columns: [
                     {
                         name: 'username',
+                        data: 'username',
                         orderable: true,
-                        targets: [0]
                     },
                     {
                         name: 'email',
-                        orderable: false,
-                        targets: [1]
+                        data: 'email',
+                        orderable: false
                     }
                 ]
         """
@@ -67,9 +70,14 @@ class DatatableMixin(object):
         # try to build list of order_columns using request data
         order_columns = []
         for column_def in self.columns_data:
-            if column_def['name']:
+            if column_def['name'] or not self.is_data_list:
+                # if self.is_data_list is False then we have a column name in the 'data' attribute, otherwise
+                # 'data' attribute is an integer with column index
                 if column_def['orderable']:
-                    order_columns.append(column_def['name'])
+                    if self.is_data_list:
+                        order_columns.append(column_def['name'])
+                    else:
+                        order_columns.append(column_def.get('data'))
                 else:
                     order_columns.append('')
             else:
@@ -83,17 +91,16 @@ class DatatableMixin(object):
     def get_columns(self):
         """ Returns the list of columns to be returned in the result set.
             By default returns self.columns but if these are not defined it tries to get columns
-            from the request using the columns[i][name] attribute. This requires proper client side definition of
+            from the request using the columns[i][data] or columns[i][name] attribute.
+            This requires proper client side definition of
             columns, eg:
 
-                columnDefs: [
+                columns: [
                     {
-                        name: 'username',
-                        targets: [0]
+                        data: 'username'
                     },
                     {
-                        name: 'email',
-                        targets: [1]
+                        data: 'email'
                     }
                 ]
         """
@@ -102,10 +109,17 @@ class DatatableMixin(object):
 
         columns = []
         for column_def in self.columns_data:
-            if column_def['name']:
-                columns.append(column_def['name'])
+            if self.is_data_list:
+                # if self.is_data_list is true then 'data' atribute is an integer - column index, so we
+                # cannot use it as a column name, let's try 'name' attribute instead
+                col_name = column_def['name']
             else:
-                raise Exception('self.columns is not defined and there is no \'name\' defined in columns definition!')
+                col_name = column_def['data']
+
+            if col_name:
+                columns.append(col_name)
+            else:
+                return self.columns
 
         return columns
 
@@ -252,21 +266,37 @@ class DatatableMixin(object):
             q = Q()
             filter_method = self.get_filter_method()
             for col_no, col in enumerate(self.columns_data):
+                # col['data'] - https://datatables.net/reference/option/columns.data
+                data_field = col['data']
+                try:
+                    data_field = int(data_field)
+                except ValueError:
+                    pass
+                if isinstance(data_field, int):
+                    column = columns[data_field]  # by index so we need columns definition in self._columns
+                else:
+                    column = data_field
+                column = column.replace('.', '__')
                 # apply global search to all searchable columns
                 if search and col['searchable']:
-                    q |= Q(**{'{0}__{1}'.format(columns[col_no].replace('.', '__'), filter_method): search})
+                    q |= Q(**{'{0}__{1}'.format(column, filter_method): search})
 
                 # column specific filter
                 if col['search.value']:
                     qs = qs.filter(**{
-                        '{0}__{1}'.format(columns[col_no].replace('.', '__'), filter_method): col['search.value']})
+                        '{0}__{1}'.format(column, filter_method): col['search.value']})
             qs = qs.filter(q)
         return qs
 
     def prepare_results(self, qs):
         data = []
         for item in qs:
-            data.append([self.render_column(item, column) for column in self._columns])
+            if self.is_data_list:
+                data.append([self.render_column(item, column) for column in self._columns])
+            else:
+                row = {col_data['data']: self.render_column(item, col_data['data']) for col_data in self.columns_data}
+                data.append(row)
+
         return data
 
     def handle_exception(self, e):
@@ -279,6 +309,20 @@ class DatatableMixin(object):
 
             # prepare columns data (for DataTables 1.10+)
             self.columns_data = self.extract_datatables_column_data()
+
+            # determine the response type based on the 'data' field passed from JavaScript
+            # https://datatables.net/reference/option/columns.data
+            # col['data'] can be an integer (return list) or string (return dictionary)
+            # we only check for the first column definition here as there is no way to return list and dictionary
+            # at once
+            self.is_data_list = True
+            if self.columns_data:
+                self.is_data_list = False
+                try:
+                    int(self.columns_data[0]['data'])
+                    self.is_data_list = True
+                except ValueError:
+                    pass
 
             # prepare list of columns to be returned
             self._columns = self.get_columns()
