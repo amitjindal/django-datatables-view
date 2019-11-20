@@ -1,3 +1,7 @@
+2019.11.20 - 1.19.1
+ - Issue #63 - render_column method refactored into two separate methods
+ - Issue #66 - added format_html to the render_column output if get_absolute_url is used
+
 2019.10.02 - 1.19.0
  - Fixed backward compatibility with version 1.16
  - Use columns.data field (if defined in JavaScript) to determine columns definition

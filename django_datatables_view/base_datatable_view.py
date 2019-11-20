@@ -2,7 +2,7 @@
 import logging
 
 from django.db.models import Q
-from django.utils.html import escape
+from django.utils.html import escape, format_html
 
 from .mixins import JSONResponseView
 
@@ -132,7 +132,7 @@ class DatatableMixin(object):
 
         return getattr(obj, key, None)
 
-    def render_column(self, row, column):
+    def _render_column(self, row, column):
         """ Renders a column on a row. column can be given in a module notation eg. document.invoice.type
         """
         # try to find rightmost object
@@ -154,9 +154,15 @@ class DatatableMixin(object):
 
         if self.escape_values:
             value = escape(value)
-            
-        if value and hasattr(obj, 'get_absolute_url'):
-            return '<a href="%s">%s</a>' % (obj.get_absolute_url(), value)
+
+        return value
+
+    def render_column(self, row, column):
+        """ Renders a column on a row. column can be given in a module notation eg. document.invoice.type
+        """
+        value = self._render_column(row, column)
+        if value and hasattr(row, 'get_absolute_url'):
+            return format_html('<a href="{}">{}</a>', row.get_absolute_url(), value)
         return value
 
     def ordering(self, qs):
